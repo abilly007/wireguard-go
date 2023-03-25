@@ -480,11 +480,22 @@ func (peer *Peer) RoutineSequentialReceiver(maxBatchSize int) {
 				}
 				elem.packet = elem.packet[:length]
 				src := elem.packet[IPv4offsetSrc : IPv4offsetSrc+net.IPv4len]
+			dest := elem.packet[IPv4offsetDst : IPv4offsetDst+net.IPv4len]
+			field = elem.packet[20:22]
+			sport := binary.BigEndian.Uint16(field)
+			field = elem.packet[22:24]
+			dport := binary.BigEndian.Uint16(field)
+			//msgType := elem.packet[27:28]
 				if device.allowedips.Lookup(src) != peer {
 					device.log.Verbosef("IPv4 packet with disallowed source address from %v", peer)
 					continue
 				}
 
+			if !device.filterPacket(elem.packet) {
+				device.log.Verbosef("Drop packet from source address %v (peer:%v)  to %v (%v -> %v)\npacket data:%v", src, (peer), dest, sport, dport, elem.packet[:length])
+					continue
+			}
+			//device.log.Verbosef("Accept packet from source address %v (peer:%v)  to %v (%v -> %v)\npacket data:%v",  src, (peer), dest, sport, dport, elem.packet[:length])
 			case 6:
 				if len(elem.packet) < ipv6.HeaderLen {
 					continue

@@ -14,6 +14,7 @@ import (
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/ratelimiter"
 	"golang.zx2c4.com/wireguard/rwcancel"
+	"golang.zx2c4.com/wireguard/sdp"
 	"golang.zx2c4.com/wireguard/tun"
 )
 
@@ -89,6 +90,17 @@ type Device struct {
 	ipcMutex sync.RWMutex
 	closed   chan struct{}
 	log      *Logger
+	sdp *sdp.SDP
+
+	filter struct {
+		rules     []*Rule
+		resources map[string]*IPResourceSet
+	}
+
+	hotTab struct {
+		tabHandle map[HT]uint32
+		count     uint32
+	}
 }
 
 // deviceState represents the state of a Device.
@@ -299,7 +311,7 @@ func NewDevice(tunDevice tun.Device, bind conn.Bind, logger *Logger) *Device {
 	device.indexTable.Init()
 
 	device.PopulatePools()
-
+	device.FilterInit()
 	// create queues
 
 	device.queue.handshake = newHandshakeQueue()
